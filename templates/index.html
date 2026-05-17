@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>薬剤料負担額SIM</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f4f6f9;
+    --surface: #ffffff;
+    --surface2: #f8fafc;
+    --border: #e2e8f0;
+    --border-focus: #3b82f6;
+    --text: #1e293b;
+    --text-muted: #64748b;
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --long: #d97706;
+    --long-bg: #fffbeb;
+    --green: #16a34a;
+    --green-bg: #f0fdf4;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --yellow-input: #fefce8;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: var(--shadow);
+  }
+
+  header .logo {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: -0.3px;
+  }
+
+  header .badge {
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--accent-light);
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: 99px;
+  }
+
+  header .master-stats {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+  }
+
+  /* 負担割合 */
+  .burden-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .burden-label {
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .burden-selector {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .burden-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    color: var(--text-muted);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .burden-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .burden-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  .burden-display {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: 'DM Mono', monospace;
+    margin-left: 4px;
+  }
+
+  /* Rpカード */
+  .rp-list { display: flex; flex-direction: column; gap: 16px; }
+
+  .rp-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    overflow: visible;
+  }
+
+  .rp-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface2);
+    border-radius: 12px 12px 0 0;
+  }
+
+  .rp-badge {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent);
+    background: var(--accent-light);
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .rp-remove {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 6px;
+    transition: all 0.15s;
+  }
+  .rp-remove:hover { background: var(--red-bg); color: var(--red); }
+
+  .rp-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+
+  .row2 { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start; }
+  .row4 { display: grid; grid-template-columns: 2fr 1.2fr 0.7fr 1fr; gap: 10px; align-items: start; }
+
+  @media (max-width: 680px) {
+    .row2 { grid-template-columns: 1fr; }
+    .row4 { grid-template-columns: 1fr 1fr; }
+  }
+
+  /* フォーム部品 */
+  .field { display: flex; flex-direction: column; gap: 4px; position: relative; }
+
+  label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  input[type="text"], input[type="number"], select {
+    height: 40px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 0 12px;
+    font-size: 14px;
+    font-family: 'Noto Sans JP', sans-serif;
+    color: var(--text);
+    background: var(--yellow-input);
+    transition: border-color 0.15s, box-shadow 0.15s;
+    width: 100%;
+    outline: none;
+  }
+
+  input[type="text"]:focus, input[type="number"]:focus, select:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
+    background: white;
+  }
+
+  input[type="number"] { font-family: 'DM Mono', monospace; }
+
+  .spec-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    min-height: 16px;
+    padding-left: 2px;
+  }
+
+  .long-badge {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--long);
+    background: var(--long-bg);
+    border: 1px solid #fde68a;
+    padding: 1px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-top: 2px;
+  }
+
+  /* オートコンプリート */
+  .autocomplete-wrapper { position: relative; }
+
+  .autocomplete-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: white;
+    border: 1.5px solid var(--border-focus);
+    border-radius: 8px;
+    box-shadow: var(--shadow-md);
+    z-index: 200;
+    max-height: 220px;
+    overflow-y: auto;
+    display: none;
+  }
+
+  .autocomplete-dropdown.show { display: block; }
+
+  .autocomplete-item {
+    padding: 9px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .autocomplete-item:last-child { border-bottom: none; }
+  .autocomplete-item:hover, .autocomplete-item.selected { background: var(--accent-light); }
+
+  .autocomplete-item .item-long {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--long);
+    background: var(--long-bg);
+    padding: 1px 5px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  /* アクションバー */
+  .action-bar {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 8px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    height: 40px;
+    padding: 0 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid var(--border);
+    background: white;
+    color: var(--text);
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Noto Sans JP', sans-serif;
+  }
+
+  .btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    min-width: 120px;
+    justify-content: center;
+  }
+
+  .btn-primary:hover { background: #1d4ed8; border-color: #1d4ed8; color: white; }
+
+  .btn-primary:disabled {
+    background: #93c5fd;
+    border-color: #93c5fd;
+    cursor: not-allowed;
+  }
+
+  /* 結果カード */
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin-top: 20px;
+    box-shadow: var(--shadow-md);
+    display: none;
+  }
+
+  .result-card.show { display: block; }
+
+  .result-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+
+  .result-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  @media (max-width: 600px) { .result-grid { grid-template-columns: 1fr; } }
+
+  .result-item { text-align: center; }
+
+  .result-item-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .result-item-value {
+    font-size: 28px;
+    font-weight: 700;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: -1px;
+  }
+
+  .result-item-value.before { color: var(--text); }
+  .result-item-value.after { color: var(--accent); }
+  .result-item-value.diff-pos { color: var(--red); }
+  .result-item-value.diff-neg { color: var(--green); }
+  .result-item-value.diff-zero { color: var(--text-muted); }
+
+  .result-item-unit { font-size: 14px; font-weight: 400; }
+
+  .result-divider { width: 1px; background: var(--border); }
+
+  /* 区切り */
+  .divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 4px 0;
+  }
+
+  /* ローディング */
+  .loading-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(2px);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+  }
+  .loading-overlay.show { display: flex; }
+  .spinner {
+    width: 36px; height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .error-msg {
+    background: var(--red-bg);
+    border: 1px solid #fca5a5;
+    color: var(--red);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-top: 10px;
+    display: none;
+  }
+  .error-msg.show { display: block; }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="logo">💊 薬剤料負担額SIM</span>
+  <span class="badge">β</span>
+  <span class="master-stats" id="masterStats">マスタ読込中…</span>
+</header>
+
+<div class="loading-overlay" id="loadingOverlay"><div class="spinner"></div></div>
+
+<div class="container">
+
+  <!-- 負担割合 -->
+  <div class="burden-card">
+    <span class="burden-label">負担割合</span>
+    <div class="burden-selector" id="burdenSelector"></div>
+    <span class="burden-display" id="burdenDisplay">3割</span>
+  </div>
+
+  <!-- Rp一覧 -->
+  <div class="rp-list" id="rpList"></div>
+
+  <!-- アクションバー -->
+  <div class="action-bar" style="margin-top:16px;">
+    <button class="btn" onclick="addRp()">＋ Rp追加</button>
+    <button class="btn btn-primary" id="calcBtn" onclick="doCalc()">計算する</button>
+  </div>
+
+  <div class="error-msg" id="errorMsg"></div>
+
+  <!-- 結果 -->
+  <div class="result-card" id="resultCard">
+    <div class="result-title">計算結果</div>
+    <div class="result-grid">
+      <div class="result-item">
+        <div class="result-item-label">変更前の薬剤料</div>
+        <div class="result-item-value before" id="resBefore">—</div>
+      </div>
+      <div class="result-item">
+        <div class="result-item-label">変更後の薬剤料</div>
+        <div class="result-item-value after" id="resAfter">—</div>
+      </div>
+      <div class="result-item">
+        <div class="result-item-label">差額（変更後−前）</div>
+        <div class="result-item-value" id="resDiff">—</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ===== 状態 =====
+let burdenWari = 3;
+let rpCount = 0;
+let debounceTimers = {};
+
+// ===== 初期化 =====
+document.addEventListener('DOMContentLoaded', () => {
+  buildBurdenSelector();
+  addRp();
+  fetchMasterStats();
+});
+
+function fetchMasterStats() {
+  fetch('/api/master/stats')
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('masterStats').textContent =
+        `薬価: ${d.data_a.toLocaleString()}件 ／ 長期収載: ${d.long_code_set.toLocaleString()}件 ／ 用法: ${d.data_c.toLocaleString()}件`;
+    })
+    .catch(() => {
+      document.getElementById('masterStats').textContent = 'マスタ読込失敗';
+    });
+}
+
+// ===== 負担割合 =====
+function buildBurdenSelector() {
+  const el = document.getElementById('burdenSelector');
+  [1,2,3].forEach(w => {
+    const btn = document.createElement('button');
+    btn.className = 'burden-btn' + (w === burdenWari ? ' active' : '');
+    btn.textContent = w;
+    btn.onclick = () => setBurden(w);
+    btn.dataset.w = w;
+    el.appendChild(btn);
+  });
+}
+
+function setBurden(w) {
+  burdenWari = w;
+  document.querySelectorAll('.burden-btn').forEach(b => {
+    b.classList.toggle('active', parseInt(b.dataset.w) === w);
+  });
+  document.getElementById('burdenDisplay').textContent = w + '割';
+}
+
+// ===== Rp管理 =====
+function addRp() {
+  const idx = rpCount++;
+  const card = document.createElement('div');
+  card.className = 'rp-card';
+  card.id = `rp-${idx}`;
+  card.innerHTML = `
+    <div class="rp-header">
+      <span class="rp-badge">Rp ${idx + 1}</span>
+      <span id="rp-route-${idx}" style="font-size:12px;color:var(--text-muted);"></span>
+      <button class="rp-remove" onclick="removeRp(${idx})" title="削除">×</button>
+    </div>
+    <div class="rp-body">
+      <div class="row2">
+        <div class="field autocomplete-wrapper">
+          <label>変更前の薬品名</label>
+          <input type="text" id="before-${idx}" placeholder="薬品名を入力…" autocomplete="off"
+            oninput="onDrugInput('before', ${idx})"
+            onblur="hideDropdown('before-drop-${idx}')"
+            onkeydown="handleKey(event,'before-drop-${idx}','before-${idx}')">
+          <div class="autocomplete-dropdown" id="before-drop-${idx}"></div>
+          <div class="spec-hint" id="before-spec-${idx}"></div>
+        </div>
+        <div class="field" style="min-width:90px;">
+          <label>1日量 / 全量</label>
+          <input type="number" id="qty-${idx}" min="0" step="0.01" value="" placeholder="0">
+        </div>
+      </div>
+      <div class="field autocomplete-wrapper">
+        <label>変更後の薬品名（省略可）</label>
+        <input type="text" id="after-${idx}" placeholder="変更がない場合は空欄" autocomplete="off"
+          oninput="onDrugInput('after', ${idx})"
+          onblur="hideDropdown('after-drop-${idx}')"
+          onkeydown="handleKey(event,'after-drop-${idx}','after-${idx}')">
+        <div class="autocomplete-dropdown" id="after-drop-${idx}"></div>
+      </div>
+      <hr class="divider">
+      <div class="row4">
+        <div class="field autocomplete-wrapper">
+          <label>用法</label>
+          <input type="text" id="usage-${idx}" placeholder="用法を入力…" autocomplete="off"
+            oninput="onUsageInput(${idx})"
+            onblur="hideDropdown('usage-drop-${idx}')"
+            onkeydown="handleKey(event,'usage-drop-${idx}','usage-${idx}')">
+          <div class="autocomplete-dropdown" id="usage-drop-${idx}"></div>
+        </div>
+        <div class="field">
+          <label>特殊剤形</label>
+          <select id="special-${idx}">
+            <option value="">なし</option>
+            <option value="チュアブル">チュアブル</option>
+            <option value="舌下">舌下</option>
+            <option value="その他">その他</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>日数</label>
+          <input type="number" id="days-${idx}" min="1" step="1" value="1" id="days-${idx}">
+        </div>
+        <div class="field"></div>
+      </div>
+    </div>
+  `;
+  document.getElementById('rpList').appendChild(card);
+}
+
+function removeRp(idx) {
+  const el = document.getElementById(`rp-${idx}`);
+  if (el) el.remove();
+}
+
+// ===== オートコンプリート（薬品） =====
+function onDrugInput(kind, idx) {
+  const inputId = `${kind}-${idx}`;
+  const dropId = `${kind}-drop-${idx}`;
+  const keyword = document.getElementById(inputId).value;
+
+  clearTimeout(debounceTimers[inputId]);
+  debounceTimers[inputId] = setTimeout(() => {
+    if (!keyword) { hideDropdown(dropId); return; }
+    fetch(`/api/drugs/search?q=${encodeURIComponent(keyword)}`)
+      .then(r => r.json())
+      .then(d => showDropdown(dropId, d.results, (val) => {
+        document.getElementById(inputId).value = val;
+        hideDropdown(dropId);
+        if (kind === 'before') fetchDrugInfo(idx, val);
+      }));
+  }, 200);
+
+  if (kind === 'before' && !keyword) clearDrugInfo(idx);
+}
+
+function fetchDrugInfo(idx, name) {
+  fetch(`/api/drugs/info?name=${encodeURIComponent(name)}`)
+    .then(r => r.json())
+    .then(d => {
+      const specEl = document.getElementById(`before-spec-${idx}`);
+      const routeEl = document.getElementById(`rp-route-${idx}`);
+      const daysEl = document.getElementById(`days-${idx}`);
+      if (d.found) {
+        let hint = d.spec;
+        specEl.innerHTML = hint + (d.is_long ? ' <span class="long-badge">長期収載品</span>' : '');
+        routeEl.textContent = d.route_type;
+        const isExt = d.route_type === '外用薬' || d.route_type === '注射薬';
+        daysEl.disabled = isExt;
+        if (isExt) { daysEl.value = 1; }
+      } else {
+        clearDrugInfo(idx);
+      }
+    });
+}
+
+function clearDrugInfo(idx) {
+  const specEl = document.getElementById(`before-spec-${idx}`);
+  const routeEl = document.getElementById(`rp-route-${idx}`);
+  if (specEl) specEl.innerHTML = '';
+  if (routeEl) routeEl.textContent = '';
+}
+
+// ===== オートコンプリート（用法） =====
+function onUsageInput(idx) {
+  const inputId = `usage-${idx}`;
+  const dropId = `usage-drop-${idx}`;
+  const keyword = document.getElementById(inputId).value;
+
+  clearTimeout(debounceTimers[inputId]);
+  debounceTimers[inputId] = setTimeout(() => {
+    if (!keyword) { hideDropdown(dropId); return; }
+    fetch(`/api/usage/search?q=${encodeURIComponent(keyword)}`)
+      .then(r => r.json())
+      .then(d => showDropdown(dropId, d.results, (val) => {
+        document.getElementById(inputId).value = val;
+        hideDropdown(dropId);
+      }));
+  }, 200);
+}
+
+// ===== ドロップダウン共通 =====
+function showDropdown(dropId, items, onSelect) {
+  const drop = document.getElementById(dropId);
+  if (!items || items.length === 0) { drop.classList.remove('show'); return; }
+  drop.innerHTML = '';
+  items.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'autocomplete-item';
+    const isLong = item.includes('|長期収載品|');
+    const displayName = item.replace('|長期収載品|', '').trim();
+    div.innerHTML = `<span>${displayName}</span>` + (isLong ? '<span class="item-long">長期収載品</span>' : '');
+    div.onmousedown = (e) => { e.preventDefault(); onSelect(item); };
+    drop.appendChild(div);
+  });
+  drop.classList.add('show');
+}
+
+function hideDropdown(dropId) {
+  setTimeout(() => {
+    const drop = document.getElementById(dropId);
+    if (drop) drop.classList.remove('show');
+  }, 150);
+}
+
+function handleKey(event, dropId, inputId) {
+  const drop = document.getElementById(dropId);
+  const items = drop.querySelectorAll('.autocomplete-item');
+  let selected = drop.querySelector('.autocomplete-item.selected');
+  let idx = Array.from(items).indexOf(selected);
+
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    if (selected) selected.classList.remove('selected');
+    idx = Math.min(idx + 1, items.length - 1);
+    if (items[idx]) items[idx].classList.add('selected');
+  } else if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    if (selected) selected.classList.remove('selected');
+    idx = Math.max(idx - 1, 0);
+    if (items[idx]) items[idx].classList.add('selected');
+  } else if (event.key === 'Enter') {
+    if (selected) { event.preventDefault(); selected.onmousedown(event); }
+  } else if (event.key === 'Escape') {
+    hideDropdown(dropId);
+  }
+}
+
+// ===== 計算 =====
+async function doCalc() {
+  const rows = [];
+  const cards = document.querySelectorAll('.rp-card');
+
+  for (const card of cards) {
+    const id = card.id.replace('rp-', '');
+    const beforeName = document.getElementById(`before-${id}`)?.value?.trim() || '';
+    if (!beforeName) continue;
+
+    rows.push({
+      before_name: beforeName,
+      after_name: document.getElementById(`after-${id}`)?.value?.trim() || null,
+      qty: parseFloat(document.getElementById(`qty-${id}`)?.value) || 0,
+      usage: document.getElementById(`usage-${id}`)?.value?.trim() || '',
+      special: document.getElementById(`special-${id}`)?.value || '',
+      days: parseInt(document.getElementById(`days-${id}`)?.value) || 1,
+    });
+  }
+
+  if (rows.length === 0) {
+    showError('薬品名を1つ以上入力してください。');
+    return;
+  }
+
+  hideError();
+  setLoading(true);
+
+  try {
+    const res = await fetch('/api/calc', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ burden_wari: burdenWari, rows }),
+    });
+    const data = await res.json();
+
+    document.getElementById('resBefore').textContent = fmt(data.before_total);
+    document.getElementById('resAfter').textContent = fmt(data.after_total);
+
+    const diffEl = document.getElementById('resDiff');
+    diffEl.textContent = (data.diff >= 0 ? '+' : '') + fmt(data.diff);
+    diffEl.className = 'result-item-value ' +
+      (data.diff > 0 ? 'diff-pos' : data.diff < 0 ? 'diff-neg' : 'diff-zero');
+
+    document.getElementById('resultCard').classList.add('show');
+    document.getElementById('resultCard').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch (e) {
+    showError('計算中にエラーが発生しました: ' + e.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+function fmt(val) {
+  return val.toLocaleString('ja-JP', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + ' 円';
+}
+
+function setLoading(on) {
+  document.getElementById('loadingOverlay').classList.toggle('show', on);
+  document.getElementById('calcBtn').disabled = on;
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+
+function hideError() {
+  document.getElementById('errorMsg').classList.remove('show');
+}
+</script>
+</body>
+</html>
